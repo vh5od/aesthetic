@@ -1,0 +1,61 @@
+{
+  "packageName": "qiushi-skill",
+  "version": 1,
+  "entries": [
+    {
+      "path": "arming-thought",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "concentrate-forces",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "contradiction-analysis",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "criticism-self-criticism",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "investigation-first",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "mass-line",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "overall-planning",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "practice-cognition",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "protracted-strategy",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "spark-prairie-fire",
+      "type": "directory",
+      "source": "skills"
+    },
+    {
+      "path": "workflows",
+      "type": "directory",
+      "source": "skills"
+    }
+  ]
+}
