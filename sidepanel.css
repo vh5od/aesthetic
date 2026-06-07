@@ -467,6 +467,10 @@ dd {
 }
 
 .analysis-accordion-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-height: 38px;
   cursor: pointer;
   padding: 10px 12px;
@@ -678,6 +682,131 @@ textarea:focus {
   padding: 10px;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.accordion-actions,
+.custom-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.inline-action-button {
+  border: 1px solid rgba(94, 224, 183, 0.28);
+  border-radius: 999px;
+  background: rgba(94, 224, 183, 0.1);
+  color: var(--accent-strong);
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.danger-inline {
+  border-color: rgba(255, 107, 107, 0.34);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.edited-badge {
+  border-radius: 999px;
+  background: rgba(255, 191, 102, 0.12);
+  color: #ffd18a;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.analysis-edit-form,
+.custom-dimension-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.edit-form-title {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.edit-field-list,
+.custom-dimension-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-field span {
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.edit-field textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0e1114;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.edit-field textarea:focus {
+  border-color: rgba(94, 224, 183, 0.54);
+  outline: 2px solid rgba(94, 224, 183, 0.14);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-dimensions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(94, 224, 183, 0.22);
+  padding-top: 12px;
+}
+
+.custom-dimensions-header,
+.custom-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.custom-dimension-card {
+  border: 1px solid rgba(94, 224, 183, 0.28);
+  border-radius: 10px;
+  background: rgba(94, 224, 183, 0.07);
+  padding: 10px;
+}
+
+.custom-dimension-card h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.custom-dimension-form-wrap:empty {
+  display: none;
 }
 
 .action-row {

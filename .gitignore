@@ -1,0 +1,10 @@
+.npm-cache/
+codex-home/
+.agents/
+.codex/
+.env
+.env.*
+*.key
+*.pem
+secrets/
+upload-clean/
