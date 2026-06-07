@@ -7,3 +7,4 @@ codex-home/
 *.key
 *.pem
 secrets/
+upload-clean/

@@ -15,22 +15,22 @@ const STORAGE_KEYS = {
 };
 
 const ANALYSIS_SECTIONS = [
-  { title: "基础信息", getItem: (analysis) => buildBasicInfoItem(analysis.image_basic) },
-  { title: "景别", getItem: (analysis) => analysis.cinematic_analysis.shot_size },
-  { title: "镜头角度", getItem: (analysis) => analysis.cinematic_analysis.camera_angle },
-  { title: "观看视角", getItem: (analysis) => analysis.cinematic_analysis.viewpoint },
-  { title: "构图", getItem: (analysis) => buildCompositionItem(analysis.cinematic_analysis.composition) },
-  { title: "光影", getItem: (analysis) => buildLightingItem(analysis.cinematic_analysis.lighting) },
-  { title: "色彩系统", getItem: (analysis) => buildColorSystemItem(analysis.cinematic_analysis.color_system) },
-  { title: "影调", getItem: (analysis) => analysis.cinematic_analysis.tone },
-  { title: "焦段感", getItem: (analysis) => analysis.cinematic_analysis.focal_length_feeling },
-  { title: "景深", getItem: (analysis) => analysis.cinematic_analysis.depth_of_field },
-  { title: "空间层次", getItem: (analysis) => buildSpatialLayersItem(analysis.cinematic_analysis.spatial_layers) },
-  { title: "材质响应", getItem: (analysis) => buildTextureItem(analysis.cinematic_analysis.texture) },
-  { title: "情绪功能", getItem: (analysis) => buildMoodItem(analysis.cinematic_analysis.mood) },
-  { title: "审美价值", getItem: (analysis) => buildAestheticValueItem(analysis.aesthetic_value) },
-  { title: "Prompt", getItem: (analysis) => buildPromptItem(analysis.prompt) },
-  { title: "标签", getItem: (analysis) => buildTagsItem(analysis.tags) }
+  { title: "基础信息", path: "image_basic", getItem: (analysis) => buildBasicInfoItem(analysis.image_basic) },
+  { title: "景别", path: "cinematic_analysis.shot_size", getItem: (analysis) => analysis.cinematic_analysis.shot_size },
+  { title: "镜头角度", path: "cinematic_analysis.camera_angle", getItem: (analysis) => analysis.cinematic_analysis.camera_angle },
+  { title: "观看视角", path: "cinematic_analysis.viewpoint", getItem: (analysis) => analysis.cinematic_analysis.viewpoint },
+  { title: "构图", path: "cinematic_analysis.composition", getItem: (analysis) => buildCompositionItem(analysis.cinematic_analysis.composition) },
+  { title: "光影", path: "cinematic_analysis.lighting", getItem: (analysis) => buildLightingItem(analysis.cinematic_analysis.lighting) },
+  { title: "色彩系统", path: "cinematic_analysis.color_system", getItem: (analysis) => buildColorSystemItem(analysis.cinematic_analysis.color_system) },
+  { title: "影调", path: "cinematic_analysis.tone", getItem: (analysis) => analysis.cinematic_analysis.tone },
+  { title: "焦段感", path: "cinematic_analysis.focal_length_feeling", getItem: (analysis) => analysis.cinematic_analysis.focal_length_feeling },
+  { title: "景深", path: "cinematic_analysis.depth_of_field", getItem: (analysis) => analysis.cinematic_analysis.depth_of_field },
+  { title: "空间层次", path: "cinematic_analysis.spatial_layers", getItem: (analysis) => buildSpatialLayersItem(analysis.cinematic_analysis.spatial_layers) },
+  { title: "材质响应", path: "cinematic_analysis.texture", getItem: (analysis) => buildTextureItem(analysis.cinematic_analysis.texture) },
+  { title: "情绪功能", path: "cinematic_analysis.mood", getItem: (analysis) => buildMoodItem(analysis.cinematic_analysis.mood) },
+  { title: "审美价值", path: "aesthetic_value", getItem: (analysis) => buildAestheticValueItem(analysis.aesthetic_value) },
+  { title: "Prompt", path: "prompt", getItem: (analysis) => buildPromptItem(analysis.prompt) },
+  { title: "标签", path: "tags", getItem: (analysis) => buildTagsItem(analysis.tags) }
 ];
 
 const TAG_LABELS_ZH = {
@@ -64,6 +64,8 @@ const NEGATIVE_PROMPT_ZH = {
 const state = {
   activeImage: null,
   activeAnalysis: null,
+  currentUserEdits: {},
+  currentCustomDimensions: [],
   favorites: [],
   selectedFavoriteId: null,
   activeTab: "analysis",
@@ -332,6 +334,8 @@ function handleStorageChange(changes, areaName) {
 function renderImage(image) {
   state.activeImage = image;
   state.activeAnalysis = null;
+  state.currentUserEdits = {};
+  state.currentCustomDimensions = [];
   elements.saveStatus.textContent = "";
   elements.analysisStatus.textContent = "点击“开始分析”生成结构化结果。";
   elements.noteInput.value = "";
@@ -350,6 +354,8 @@ function renderImage(image) {
 function showEmptyState() {
   state.activeImage = null;
   state.activeAnalysis = null;
+  state.currentUserEdits = {};
+  state.currentCustomDimensions = [];
   elements.analysisResult.replaceChildren();
   updateEmptyStates();
 }
@@ -363,6 +369,95 @@ function updateEmptyStates(filteredLibrary = getVisibleFavorites()) {
   elements.libraryEmptyState.classList.toggle("is-hidden", hasFilteredLibrary);
   elements.libraryContent.classList.toggle("is-hidden", !hasFilteredLibrary);
   elements.favoriteDetail.classList.toggle("is-hidden", !hasFilteredLibrary || !getSelectedFavorite());
+}
+
+function cloneDeep(value) {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function setValueByPath(target, path, value) {
+  if (!path) {
+    return;
+  }
+
+  const keys = path.split(".");
+  let current = target;
+  keys.slice(0, -1).forEach((key) => {
+    if (!current[key] || typeof current[key] !== "object") {
+      current[key] = {};
+    }
+    current = current[key];
+  });
+
+  current[keys[keys.length - 1]] = cloneDeep(value);
+}
+
+function getValueByPath(target, path) {
+  if (!path) {
+    return target;
+  }
+
+  return path.split(".").reduce((current, key) => {
+    if (current == null) {
+      return undefined;
+    }
+
+    return current[key];
+  }, target);
+}
+
+function buildFinalAnalysis(rawAnalysis, userEdits) {
+  const finalAnalysis = cloneDeep(rawAnalysis || {});
+  Object.entries(userEdits || {}).forEach(([path, editedValue]) => {
+    setValueByPath(finalAnalysis, path, editedValue);
+  });
+  return finalAnalysis;
+}
+
+function normalizePrompt(prompt) {
+  if (!prompt) {
+    return { zh: "", en: "", negative_prompt: "" };
+  }
+
+  if (typeof prompt === "string") {
+    return { zh: prompt, en: "", negative_prompt: "" };
+  }
+
+  return {
+    zh: prompt.zh || "",
+    en: prompt.en || "",
+    negative_prompt: prompt.negative_prompt || ""
+  };
+}
+
+function normalizeExportCustomDimensions(customDimensions) {
+  if (!Array.isArray(customDimensions)) {
+    return [];
+  }
+
+  return customDimensions.map((dimension) => ({
+    title: dimension.title || "",
+    label: dimension.label || "",
+    evidence: dimension.evidence || "",
+    function: dimension.function || ""
+  }));
+}
+
+function getStyleStrength(score) {
+  const numericScore = Number(score);
+  if (numericScore >= 0.8) {
+    return "high";
+  }
+
+  if (numericScore >= 0.5) {
+    return "medium";
+  }
+
+  return "low";
 }
 
 function setLink(anchor, url) {
@@ -386,6 +481,8 @@ async function analyzeActiveImage() {
   try {
     const analysis = await analyzeImage(buildImageInput(state.activeImage));
     state.activeAnalysis = analysis;
+    state.currentUserEdits = {};
+    state.currentCustomDimensions = [];
     renderAnalysis(analysis);
     elements.analysisStatus.textContent = "分析完成。";
   } catch (error) {
@@ -457,10 +554,15 @@ function buildImageInput(image) {
 }
 
 function renderAnalysis(analysis) {
+  const finalAnalysis = buildFinalAnalysis(analysis, state.currentUserEdits);
   elements.analysisResult.replaceChildren(
-    createCoreSummary(analysis),
-    createFocusBreakdown(analysis),
-    renderFullAnalysisAccordion(analysis)
+    createCoreSummary(finalAnalysis),
+    createFocusBreakdown(finalAnalysis),
+    renderFullAnalysisAccordion(analysis, {
+      context: "current",
+      userEdits: state.currentUserEdits,
+      customDimensions: state.currentCustomDimensions
+    })
   );
   updateEmptyStates();
 }
@@ -551,6 +653,8 @@ function createFocusCard(title, analysisItem) {
 }
 
 function renderFullAnalysisAccordion(analysis, options = {}) {
+  const userEdits = options.userEdits || {};
+  const finalAnalysis = buildFinalAnalysis(analysis, userEdits);
   const wrapper = document.createElement("section");
   wrapper.className = "analysis-full-section";
 
@@ -565,22 +669,51 @@ function renderFullAnalysisAccordion(analysis, options = {}) {
     : ANALYSIS_SECTIONS.filter((section) => section.title !== "标签");
 
   sections.forEach((section) => {
-    const item = section.getItem(analysis);
-    list.append(createAccordionItem(section.title, item));
+    const item = section.getItem(finalAnalysis);
+    const rawValue = getValueByPath(finalAnalysis, section.path);
+    list.append(createAccordionItem(section, item, rawValue, {
+      context: options.context || "current",
+      itemId: options.itemId || null,
+      isEdited: Boolean(userEdits[section.path])
+    }));
   });
 
-  wrapper.append(title, list);
+  wrapper.append(title, list, renderCustomDimensions(options.context || "current", options.itemId || null, options.customDimensions || []));
   return wrapper;
 }
 
-function createAccordionItem(title, analysisItem) {
+function createAccordionItem(section, analysisItem, rawValue, options) {
   const details = document.createElement("details");
   details.className = "analysis-accordion-item";
 
   const summary = document.createElement("summary");
-  summary.textContent = title;
+  const summaryTitle = document.createElement("span");
+  summaryTitle.textContent = section.title;
 
-  const content = createSchemaAnalysisItem(title, analysisItem);
+  const summaryActions = document.createElement("span");
+  summaryActions.className = "accordion-actions";
+
+  if (options.isEdited) {
+    const badge = document.createElement("span");
+    badge.className = "edited-badge";
+    badge.textContent = "已编辑";
+    summaryActions.append(badge);
+  }
+
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.className = "inline-action-button";
+  editButton.textContent = "编辑";
+  editButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    details.open = true;
+    content.replaceChildren(renderEditForm(section.path, section.title, rawValue, options.context, options.itemId));
+  });
+  summaryActions.append(editButton);
+  summary.append(summaryTitle, summaryActions);
+
+  const content = createSchemaAnalysisItem(section.title, analysisItem);
   details.append(summary, content);
   return details;
 }
@@ -612,6 +745,336 @@ function appendAnalysisField(container, label, value) {
   description.textContent = formatAnalysisValue(value);
   row.append(term, description);
   container.append(row);
+}
+
+function renderEditForm(path, title, value, context, itemId) {
+  const form = document.createElement("form");
+  form.className = "analysis-edit-form";
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const editedValue = readEditableValue(form, value);
+    await saveUserEdit(context, path, editedValue, itemId);
+  });
+
+  const heading = document.createElement("p");
+  heading.className = "edit-form-title";
+  heading.textContent = `编辑 ${title}`;
+
+  const fields = document.createElement("div");
+  fields.className = "edit-field-list";
+  appendEditableFields(fields, value, []);
+
+  const actions = document.createElement("div");
+  actions.className = "edit-actions";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "submit";
+  saveButton.className = "primary-button compact-button";
+  saveButton.textContent = "保存";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "secondary-button compact-button";
+  cancelButton.textContent = "取消";
+  cancelButton.addEventListener("click", () => {
+    if (context === "library") {
+      const favorite = getSelectedFavorite();
+      if (favorite) {
+        renderFavoriteDetail(favorite);
+      }
+      return;
+    }
+
+    if (state.activeAnalysis) {
+      renderAnalysis(state.activeAnalysis);
+    }
+  });
+
+  actions.append(saveButton, cancelButton);
+  form.append(heading, fields, actions);
+  return form;
+}
+
+function appendEditableFields(container, value, pathParts) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    Object.entries(value).forEach(([key, childValue]) => {
+      appendEditableFields(container, childValue, [...pathParts, key]);
+    });
+    return;
+  }
+
+  const label = document.createElement("label");
+  label.className = "edit-field";
+
+  const name = document.createElement("span");
+  name.textContent = pathParts.join(".") || "value";
+
+  const textarea = document.createElement("textarea");
+  textarea.rows = Array.isArray(value) ? 2 : 3;
+  textarea.dataset.path = pathParts.join(".");
+  textarea.value = Array.isArray(value) ? value.join(", ") : value == null ? "" : String(value);
+
+  label.append(name, textarea);
+  container.append(label);
+}
+
+function readEditableValue(form, template) {
+  const result = Array.isArray(template) ? [] : {};
+
+  if (!template || typeof template !== "object" || Array.isArray(template)) {
+    const textarea = form.querySelector("textarea");
+    return parseEditedFieldValue(textarea ? textarea.value : "", template);
+  }
+
+  form.querySelectorAll("textarea[data-path]").forEach((textarea) => {
+    const originalValue = getValueByPath(template, textarea.dataset.path);
+    setValueByPath(result, textarea.dataset.path, parseEditedFieldValue(textarea.value, originalValue));
+  });
+
+  return result;
+}
+
+function parseEditedFieldValue(value, originalValue) {
+  if (Array.isArray(originalValue)) {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+
+  if (typeof originalValue === "number") {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : originalValue;
+  }
+
+  return value.trim();
+}
+
+async function saveUserEdit(context, path, editedData, itemId) {
+  if (context === "library") {
+    const item = await updateLibraryItem(itemId, (favorite) => ({
+      ...favorite,
+      user_edits: {
+        ...(favorite.user_edits || {}),
+        [path]: editedData
+      },
+      updatedAt: new Date().toISOString()
+    }));
+    renderFavoriteDetail(item);
+    elements.libraryStatus.textContent = "修改已保存";
+    return;
+  }
+
+  state.currentUserEdits = {
+    ...state.currentUserEdits,
+    [path]: editedData
+  };
+  renderAnalysis(state.activeAnalysis);
+  elements.analysisStatus.textContent = "修改已保存";
+}
+
+function renderCustomDimensions(context, itemId, customDimensions) {
+  const section = document.createElement("section");
+  section.className = "custom-dimensions-section";
+
+  const header = document.createElement("div");
+  header.className = "custom-dimensions-header";
+
+  const title = document.createElement("h2");
+  title.textContent = "我的补充分析";
+
+  const addButton = document.createElement("button");
+  addButton.type = "button";
+  addButton.className = "secondary-button compact-button";
+  addButton.textContent = "添加自定义维度";
+  addButton.addEventListener("click", () => {
+    formWrap.replaceChildren(renderCustomDimensionForm(context, itemId));
+  });
+
+  header.append(title, addButton);
+
+  const list = document.createElement("div");
+  list.className = "custom-dimension-list";
+  (customDimensions || []).forEach((dimension) => {
+    list.append(renderCustomDimensionCard(context, itemId, dimension));
+  });
+
+  const formWrap = document.createElement("div");
+  formWrap.className = "custom-dimension-form-wrap";
+
+  section.append(header, list, formWrap);
+  return section;
+}
+
+function renderCustomDimensionCard(context, itemId, dimension) {
+  const card = document.createElement("article");
+  card.className = "custom-dimension-card";
+
+  const header = document.createElement("div");
+  header.className = "custom-card-header";
+
+  const title = document.createElement("h3");
+  title.textContent = dimension.title || "未命名维度";
+
+  const actions = document.createElement("div");
+  actions.className = "custom-card-actions";
+
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.className = "inline-action-button";
+  editButton.textContent = "编辑";
+  editButton.addEventListener("click", () => {
+    card.replaceChildren(renderCustomDimensionForm(context, itemId, dimension));
+  });
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "inline-action-button danger-inline";
+  deleteButton.textContent = "删除";
+  deleteButton.addEventListener("click", () => deleteCustomDimension(context, itemId, dimension.id));
+
+  actions.append(editButton, deleteButton);
+  header.append(title, actions);
+
+  const fields = document.createElement("dl");
+  fields.className = "analysis-fields";
+  appendAnalysisField(fields, "判断", dimension.label);
+  appendAnalysisField(fields, "画面依据", dimension.evidence);
+  appendAnalysisField(fields, "视觉作用", dimension.function);
+
+  card.append(header, fields);
+  return card;
+}
+
+function renderCustomDimensionForm(context, itemId, dimension = null) {
+  const form = document.createElement("form");
+  form.className = "custom-dimension-form";
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const now = new Date().toISOString();
+    const data = {
+      id: dimension && dimension.id ? dimension.id : createFavoriteId(),
+      title: form.elements.title.value.trim(),
+      label: form.elements.label.value.trim(),
+      evidence: form.elements.evidence.value.trim(),
+      function: form.elements.function.value.trim(),
+      createdAt: dimension && dimension.createdAt ? dimension.createdAt : now,
+      updatedAt: now
+    };
+
+    if (!data.title) {
+      data.title = "未命名维度";
+    }
+
+    if (dimension) {
+      await updateCustomDimension(context, itemId, data);
+    } else {
+      await addCustomDimension(context, itemId, data);
+    }
+  });
+
+  form.append(
+    createTextField("title", "维度名称", dimension && dimension.title),
+    createTextField("label", "判断 / 结论", dimension && dimension.label),
+    createTextField("evidence", "画面依据", dimension && dimension.evidence),
+    createTextField("function", "视觉作用 / 可复用价值", dimension && dimension.function)
+  );
+
+  const actions = document.createElement("div");
+  actions.className = "edit-actions";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "submit";
+  saveButton.className = "primary-button compact-button";
+  saveButton.textContent = "保存";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "secondary-button compact-button";
+  cancelButton.textContent = "取消";
+  cancelButton.addEventListener("click", () => {
+    if (context === "library") {
+      const favorite = getSelectedFavorite();
+      if (favorite) {
+        renderFavoriteDetail(favorite);
+      }
+      return;
+    }
+
+    renderAnalysis(state.activeAnalysis);
+  });
+
+  actions.append(saveButton, cancelButton);
+  form.append(actions);
+  return form;
+}
+
+function createTextField(name, labelText, value = "") {
+  const label = document.createElement("label");
+  label.className = "edit-field";
+
+  const labelName = document.createElement("span");
+  labelName.textContent = labelText;
+
+  const textarea = document.createElement("textarea");
+  textarea.name = name;
+  textarea.rows = name === "title" ? 2 : 3;
+  textarea.value = value || "";
+
+  label.append(labelName, textarea);
+  return label;
+}
+
+async function addCustomDimension(context, itemId, dimension) {
+  if (context === "library") {
+    const item = await updateLibraryItem(itemId, (favorite) => ({
+      ...favorite,
+      custom_dimensions: [...(favorite.custom_dimensions || []), dimension],
+      updatedAt: new Date().toISOString()
+    }));
+    renderFavoriteDetail(item);
+    elements.libraryStatus.textContent = "补充分析已保存";
+    return;
+  }
+
+  state.currentCustomDimensions = [...state.currentCustomDimensions, dimension];
+  renderAnalysis(state.activeAnalysis);
+  elements.analysisStatus.textContent = "补充分析已保存";
+}
+
+async function updateCustomDimension(context, itemId, dimension) {
+  if (context === "library") {
+    const item = await updateLibraryItem(itemId, (favorite) => ({
+      ...favorite,
+      custom_dimensions: (favorite.custom_dimensions || []).map((item) => item.id === dimension.id ? dimension : item),
+      updatedAt: new Date().toISOString()
+    }));
+    renderFavoriteDetail(item);
+    elements.libraryStatus.textContent = "补充分析已保存";
+    return;
+  }
+
+  state.currentCustomDimensions = state.currentCustomDimensions.map((item) => item.id === dimension.id ? dimension : item);
+  renderAnalysis(state.activeAnalysis);
+  elements.analysisStatus.textContent = "补充分析已保存";
+}
+
+async function deleteCustomDimension(context, itemId, dimensionId) {
+  if (!confirm("确认删除这条补充分析？")) {
+    return;
+  }
+
+  if (context === "library") {
+    const item = await updateLibraryItem(itemId, (favorite) => ({
+      ...favorite,
+      custom_dimensions: (favorite.custom_dimensions || []).filter((dimension) => dimension.id !== dimensionId),
+      updatedAt: new Date().toISOString()
+    }));
+    renderFavoriteDetail(item);
+    elements.libraryStatus.textContent = "补充分析已删除";
+    return;
+  }
+
+  state.currentCustomDimensions = state.currentCustomDimensions.filter((dimension) => dimension.id !== dimensionId);
+  renderAnalysis(state.activeAnalysis);
+  elements.analysisStatus.textContent = "补充分析已删除";
 }
 
 function formatAnalysisValue(value) {
@@ -762,6 +1225,7 @@ async function saveFavorite() {
 }
 
 function buildFavorite(image, note, analysis) {
+  const now = new Date().toISOString();
   return {
     id: createFavoriteId(),
     image: {
@@ -773,9 +1237,12 @@ function buildFavorite(image, note, analysis) {
       aspectRatio: image.aspectRatio || formatAspectRatio(image.width, image.height)
     },
     analysis: analysis || null,
+    user_edits: cloneDeep(state.currentUserEdits),
+    custom_dimensions: cloneDeep(state.currentCustomDimensions),
     note: note.trim(),
     tags: analysis && Array.isArray(analysis.tags) ? localizeTags(analysis.tags) : buildTags(image),
-    savedAt: new Date().toISOString()
+    savedAt: now,
+    updatedAt: now
   };
 }
 
@@ -865,7 +1332,7 @@ function renderFavoriteDetail(favorite) {
   setLink(elements.detailImageUrl, imageData.src);
   setLink(elements.detailPageUrl, imageData.pageUrl);
   elements.detailTags.replaceChildren(...localizeTags(favorite.tags).map(createTag));
-  elements.detailPrompt.textContent = getPromptText(favorite) || buildPrompt(favorite);
+  elements.detailPrompt.textContent = getFinalPromptText(favorite) || buildPrompt(favorite);
   elements.detailNote.textContent = favorite.note || "未添加笔记。";
   renderFavoriteFullAnalysis(favorite);
 }
@@ -877,11 +1344,20 @@ function renderFavoriteFullAnalysis(favorite) {
     const notice = document.createElement("p");
     notice.className = "legacy-analysis-notice";
     notice.textContent = "这条素材没有完整分析数据，请重新分析后保存。";
-    elements.detailFullAnalysis.append(notice);
+    elements.detailFullAnalysis.append(
+      notice,
+      renderCustomDimensions("library", favorite.id, favorite.custom_dimensions || [])
+    );
     return;
   }
 
-  elements.detailFullAnalysis.append(renderFullAnalysisAccordion(favorite.analysis, { includeTags: true }));
+  elements.detailFullAnalysis.append(renderFullAnalysisAccordion(favorite.analysis, {
+    includeTags: true,
+    context: "library",
+    itemId: favorite.id,
+    userEdits: favorite.user_edits || {},
+    customDimensions: favorite.custom_dimensions || []
+  }));
 }
 
 async function deleteSelectedFavorite() {
@@ -903,7 +1379,8 @@ async function copySelectedField(field) {
     return;
   }
 
-  const value = field === "markdown" ? buildMarkdown(selected) : getPromptText(selected) || buildPrompt(selected);
+  const latest = await getLatestLibraryItemById(selected.id);
+  const value = field === "markdown" ? buildMarkdown(latest) : getFinalPromptText(latest) || buildPrompt(latest);
   try {
     await navigator.clipboard.writeText(value || "");
     elements.libraryStatus.textContent = field === "markdown" ? "Markdown 已复制。" : "Prompt 已复制。";
@@ -914,35 +1391,87 @@ async function copySelectedField(field) {
 
 async function copyFullJson(source) {
   try {
-    const data = buildFullJsonExport(source);
+    const item = source === "analysis"
+      ? buildCurrentAnalysisExportItem()
+      : await getLatestLibraryItemById(state.selectedFavoriteId);
+
+    if (!item) {
+      throw new Error("No item to export.");
+    }
+
+    const data = buildFullJsonExport(item);
     await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    showCopyStatus(source, "完整 JSON 已复制");
+    showCopyStatus(source, "完整 JSON 已复制，可用于文生图");
   } catch (error) {
     showCopyStatus(source, "复制失败，请重试");
   }
 }
 
-function buildFullJsonExport(source) {
-  if (source === "analysis") {
-    if (!state.activeImage || !state.activeAnalysis) {
-      throw new Error("No current analysis to export.");
-    }
-
-    return {
-      image: state.activeImage,
-      analysis: state.activeAnalysis,
-      note: elements.noteInput.value.trim(),
-      tags: localizeTags(state.activeAnalysis.tags || []),
-      exportedAt: new Date().toISOString()
-    };
+function buildCurrentAnalysisExportItem() {
+  if (!state.activeImage || !state.activeAnalysis) {
+    throw new Error("No current analysis to export.");
   }
 
-  const selected = getSelectedFavorite();
-  if (!selected) {
-    throw new Error("No selected library item to export.");
-  }
+  return {
+    image: getFavoriteImage({
+      image: {
+        src: state.activeImage.imageUrl,
+        pageUrl: state.activeImage.pageUrl,
+        pageTitle: state.activeImage.pageTitle,
+        width: state.activeImage.width,
+        height: state.activeImage.height,
+        aspectRatio: state.activeImage.aspectRatio || formatAspectRatio(state.activeImage.width, state.activeImage.height)
+      }
+    }),
+    analysis: state.activeAnalysis,
+    user_edits: state.currentUserEdits,
+    custom_dimensions: state.currentCustomDimensions,
+    tags: localizeTags(state.activeAnalysis.tags || []),
+    note: elements.noteInput.value.trim()
+  };
+}
 
-  return selected;
+function buildFullJsonExport(item) {
+  const imageData = getFavoriteImage(item);
+  const finalAnalysis = buildFinalAnalysis(item.analysis || {}, item.user_edits || {});
+  const prompt = normalizePrompt(finalAnalysis.prompt || item.prompt || {});
+  const aestheticValue = finalAnalysis.aesthetic_value || {};
+  const imageBasic = finalAnalysis.image_basic || {};
+  const recommendedAspectRatio = imageData.aspectRatio || imageBasic.aspect_ratio || "";
+
+  // 复制完整 JSON 的用途是创作复用，而不是调试审计。
+  // 导出的 JSON 必须是用户编辑后的最终视觉分析结果，不导出 raw_analysis / user_edits / final_analysis 等内部编辑结构。
+  return {
+    image_reference: {
+      source_page_title: imageData.pageTitle || "",
+      source_page_url: imageData.pageUrl || "",
+      image_url: imageData.src || "",
+      width: Number(imageData.width) || 0,
+      height: Number(imageData.height) || 0,
+      aspect_ratio: recommendedAspectRatio,
+      orientation: imageBasic.orientation || ""
+    },
+    visual_analysis: {
+      image_basic: imageBasic,
+      cinematic_analysis: finalAnalysis.cinematic_analysis || {},
+      aesthetic_value: aestheticValue
+    },
+    custom_dimensions: normalizeExportCustomDimensions(item.custom_dimensions),
+    generation_prompt: prompt,
+    tags: Array.isArray(item.user_edits && item.user_edits.tags)
+      ? localizeTags(finalAnalysis.tags || [])
+      : Array.isArray(item.tags) && item.tags.length > 0
+        ? localizeTags(item.tags)
+        : localizeTags(finalAnalysis.tags || []),
+    usage: {
+      best_for: Array.isArray(aestheticValue.can_be_used_for) ? aestheticValue.can_be_used_for : [],
+      recommended_aspect_ratio: recommendedAspectRatio,
+      style_strength: getStyleStrength(aestheticValue.score),
+      reference_value: Array.isArray(aestheticValue.reusable_elements) ? aestheticValue.reusable_elements.join("、") : ""
+    },
+    note: item.note || "",
+    exportedAt: new Date().toISOString()
+  };
 }
 
 function showCopyStatus(source, message) {
@@ -952,6 +1481,38 @@ function showCopyStatus(source, message) {
   }
 
   elements.libraryStatus.textContent = message;
+}
+
+async function updateLibraryItem(itemId, updater) {
+  if (!itemId) {
+    throw new Error("Missing library item id.");
+  }
+
+  const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
+  const latestFavorites = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
+  const nextFavorites = latestFavorites.map((favorite) => {
+    if (favorite.id !== itemId) {
+      return favorite;
+    }
+
+    return normalizeFavorites([updater(favorite)])[0];
+  });
+  const updatedItem = nextFavorites.find((favorite) => favorite.id === itemId);
+
+  if (!updatedItem) {
+    throw new Error("Library item not found.");
+  }
+
+  state.favorites = nextFavorites;
+  await chrome.storage.local.set({ [STORAGE_KEYS.FAVORITES]: nextFavorites });
+  return updatedItem;
+}
+
+async function getLatestLibraryItemById(itemId) {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
+  const latestFavorites = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
+  state.favorites = latestFavorites;
+  return latestFavorites.find((favorite) => favorite.id === itemId) || null;
 }
 
 function getSelectedFavorite() {
@@ -1009,7 +1570,10 @@ function normalizeFavorites(value) {
       tags: Array.isArray(favorite.tags) && favorite.tags.length > 0
         ? localizeTags(favorite.tags)
         : buildTags(imageData),
-      savedAt: favorite.savedAt || favorite.favoritedAt || new Date().toISOString()
+      user_edits: favorite.user_edits && typeof favorite.user_edits === "object" ? favorite.user_edits : {},
+      custom_dimensions: Array.isArray(favorite.custom_dimensions) ? favorite.custom_dimensions : [],
+      savedAt: favorite.savedAt || favorite.favoritedAt || new Date().toISOString(),
+      updatedAt: favorite.updatedAt || favorite.savedAt || favorite.favoritedAt || new Date().toISOString()
     };
   });
 }
@@ -1101,6 +1665,15 @@ function getPromptText(item) {
   return getPreferredPromptText(prompt);
 }
 
+function getFinalPromptText(item) {
+  if (!item) {
+    return "";
+  }
+
+  const finalAnalysis = buildFinalAnalysis(item.analysis || {}, item.user_edits || {});
+  return getPreferredPromptText(finalAnalysis.prompt || item.prompt || {});
+}
+
 function getPreferredPromptText(prompt) {
   if (!prompt || typeof prompt !== "object") {
     return "";
@@ -1116,8 +1689,10 @@ function getPreferredPromptText(prompt) {
 function buildMarkdown(item) {
   const imageData = getFavoriteImage(item);
   const title = imageData.pageTitle || item.title || "Untitled page";
-  const prompt = getPromptText(item) || buildPrompt(item);
+  const finalAnalysis = buildFinalAnalysis(item.analysis || {}, item.user_edits || {});
+  const prompt = getFinalPromptText(item) || buildPrompt(item);
   const tags = Array.isArray(item.tags) ? localizeTags(item.tags).map((tag) => `#${tag}`).join(" ") : "";
+  const customDimensions = normalizeExportCustomDimensions(item.custom_dimensions);
 
   return [
     `![${title}](${imageData.src})`,
@@ -1130,6 +1705,17 @@ function buildMarkdown(item) {
     "```prompt",
     prompt,
     "```",
+    "",
+    "## 最终分析",
+    finalAnalysis.aesthetic_value && finalAnalysis.aesthetic_value.core_value ? finalAnalysis.aesthetic_value.core_value : "",
+    finalAnalysis.aesthetic_value && finalAnalysis.aesthetic_value.why_it_works ? finalAnalysis.aesthetic_value.why_it_works : "",
+    customDimensions.length > 0 ? "\n## 我的补充分析" : "",
+    ...customDimensions.map((dimension) => [
+      `### ${dimension.title}`,
+      `- 判断：${dimension.label}`,
+      `- 画面依据：${dimension.evidence}`,
+      `- 视觉作用：${dimension.function}`
+    ].join("\n")),
     item.note ? `\n> ${item.note}` : ""
   ].filter(Boolean).join("\n");
 }
