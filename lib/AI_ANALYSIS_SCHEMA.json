@@ -1,0 +1,647 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aesthetic Lens AI Image Analysis Schema",
+  "description": "Structured visual analysis schema for cinematic, photographic and design-oriented image analysis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "image_basic",
+    "cinematic_analysis",
+    "aesthetic_value",
+    "prompt",
+    "tags"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "image_basic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aspect_ratio",
+        "orientation",
+        "dominant_colors",
+        "brightness",
+        "contrast",
+        "saturation",
+        "visual_density"
+      ],
+      "properties": {
+        "aspect_ratio": {
+          "type": "string"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": [
+            "portrait",
+            "landscape",
+            "square",
+            "panoramic",
+            "unknown"
+          ]
+        },
+        "dominant_colors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "brightness": {
+          "type": "string",
+          "enum": [
+            "high-key",
+            "mid-key",
+            "low-key",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "contrast": {
+          "type": "string",
+          "enum": [
+            "high contrast",
+            "medium contrast",
+            "low contrast",
+            "unknown"
+          ]
+        },
+        "saturation": {
+          "type": "string",
+          "enum": [
+            "high saturation",
+            "medium saturation",
+            "low saturation",
+            "near monochrome",
+            "unknown"
+          ]
+        },
+        "visual_density": {
+          "type": "string",
+          "enum": [
+            "low density",
+            "medium density",
+            "high density",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "cinematic_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shot_size",
+        "camera_angle",
+        "viewpoint",
+        "composition",
+        "lighting",
+        "color_system",
+        "tone",
+        "focal_length_feeling",
+        "depth_of_field",
+        "spatial_layers",
+        "texture",
+        "mood"
+      ],
+      "properties": {
+        "shot_size": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "evidence",
+            "function"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "extreme long shot",
+                "long shot",
+                "full shot",
+                "medium shot",
+                "medium close-up",
+                "close-up",
+                "extreme close-up",
+                "object detail shot",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "camera_angle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "evidence",
+            "function"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "eye-level",
+                "low angle",
+                "high angle",
+                "overhead",
+                "bird's-eye view",
+                "god's-eye view",
+                "worm's-eye view",
+                "tilted angle",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "viewpoint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "evidence",
+            "function"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "objective view",
+                "subjective POV",
+                "semi-POV",
+                "over-the-shoulder",
+                "frontal view",
+                "profile view",
+                "back view",
+                "three-quarter view",
+                "observational view",
+                "voyeuristic view",
+                "surveillance view",
+                "paparazzi view",
+                "following view",
+                "first-person view",
+                "third-person game view",
+                "ghost view",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "composition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "labels",
+            "subject_position",
+            "visual_focus",
+            "eye_flow",
+            "function"
+          ],
+          "properties": {
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "center composition",
+                  "rule of thirds",
+                  "golden ratio",
+                  "symmetrical composition",
+                  "frame within frame",
+                  "leading lines",
+                  "negative space",
+                  "deep composition",
+                  "foreground obstruction",
+                  "dutch angle",
+                  "minimal composition",
+                  "crowded composition",
+                  "group composition",
+                  "two-shot composition",
+                  "closed composition",
+                  "open composition",
+                  "silhouette composition",
+                  "vertical framing",
+                  "horizontal framing",
+                  "unknown"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 5
+            },
+            "subject_position": {
+              "type": "string"
+            },
+            "visual_focus": {
+              "type": "string"
+            },
+            "eye_flow": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "lighting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key_light_direction",
+            "light_quality",
+            "lighting_ratio",
+            "shadow_behavior",
+            "lighting_style",
+            "function"
+          ],
+          "properties": {
+            "key_light_direction": {
+              "type": "string",
+              "enum": [
+                "front light",
+                "side light",
+                "back light",
+                "top light",
+                "bottom light",
+                "three-quarter front light",
+                "mixed practical light",
+                "flash light",
+                "ambient light",
+                "unknown"
+              ]
+            },
+            "light_quality": {
+              "type": "string",
+              "enum": [
+                "hard light",
+                "soft light",
+                "diffused light",
+                "mixed",
+                "unknown"
+              ]
+            },
+            "lighting_ratio": {
+              "type": "string",
+              "enum": [
+                "high ratio",
+                "medium ratio",
+                "low ratio",
+                "unknown"
+              ]
+            },
+            "shadow_behavior": {
+              "type": "string"
+            },
+            "lighting_style": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "low-key lighting",
+                  "high-key lighting",
+                  "natural window light",
+                  "neon light",
+                  "direct flash",
+                  "cinematic practical light",
+                  "studio light",
+                  "rim light",
+                  "silhouette lighting",
+                  "unknown"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 5
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "color_system": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "temperature",
+            "palette",
+            "color_relationship",
+            "function"
+          ],
+          "properties": {
+            "temperature": {
+              "type": "string",
+              "enum": [
+                "warm",
+                "cool",
+                "neutral",
+                "warm-cool contrast",
+                "unknown"
+              ]
+            },
+            "palette": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "maxItems": 8
+            },
+            "color_relationship": {
+              "type": "string",
+              "enum": [
+                "monochromatic",
+                "analogous",
+                "complementary",
+                "split complementary",
+                "neutral with accent color",
+                "highly mixed",
+                "unknown"
+              ]
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "tone": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "evidence",
+            "function"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "high-key",
+                "low-key",
+                "middle-key",
+                "high contrast",
+                "low contrast",
+                "gray tone",
+                "black-and-white high contrast",
+                "soft low contrast",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "focal_length_feeling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "evidence",
+            "function"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "ultra-wide feeling",
+                "wide-angle feeling",
+                "standard lens feeling",
+                "medium focal length feeling",
+                "medium telephoto feeling",
+                "telephoto compression feeling",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "depth_of_field": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "evidence",
+            "function"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "shallow depth of field",
+                "medium depth of field",
+                "deep focus",
+                "background strongly blurred",
+                "all-in-focus",
+                "unknown"
+              ]
+            },
+            "evidence": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "spatial_layers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "foreground",
+            "midground",
+            "background",
+            "depth_strategy",
+            "function"
+          ],
+          "properties": {
+            "foreground": {
+              "type": "string"
+            },
+            "midground": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "depth_strategy": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "texture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "materials",
+            "surface_response",
+            "function"
+          ],
+          "properties": {
+            "materials": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "maxItems": 10
+            },
+            "surface_response": {
+              "type": "string"
+            },
+            "function": {
+              "type": "string"
+            }
+          }
+        },
+        "mood": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "labels",
+            "visual_causes"
+          ],
+          "properties": {
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "lonely",
+                  "oppressive",
+                  "cold",
+                  "restrained",
+                  "intimate",
+                  "ambiguous",
+                  "dangerous",
+                  "uneasy",
+                  "absurd",
+                  "mysterious",
+                  "powerful",
+                  "realistic",
+                  "documentary",
+                  "dreamlike",
+                  "commercial",
+                  "luxury",
+                  "game-like",
+                  "system-like",
+                  "nostalgic",
+                  "raw",
+                  "unknown"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 6
+            },
+            "visual_causes": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "aesthetic_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "core_value",
+        "why_it_works",
+        "visual_focus",
+        "reusable_elements",
+        "can_be_used_for",
+        "score"
+      ],
+      "properties": {
+        "core_value": {
+          "type": "string"
+        },
+        "why_it_works": {
+          "type": "string"
+        },
+        "visual_focus": {
+          "type": "string"
+        },
+        "reusable_elements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "can_be_used_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zh",
+        "en",
+        "negative_prompt"
+      ],
+      "properties": {
+        "zh": {
+          "type": "string"
+        },
+        "en": {
+          "type": "string"
+        },
+        "negative_prompt": {
+          "type": "string"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 3,
+      "maxItems": 20
+    }
+  }
+}

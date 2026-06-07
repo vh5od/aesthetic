@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Aesthetic Lens",
+  "description": "Scan page images, inspect visual metadata, and save aesthetic references.",
+  "version": "0.1.0",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "activeTab",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Aesthetic Lens"
+  }
+}

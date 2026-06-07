@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aesthetic Lens</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <main class="panel-shell">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Aesthetic Lens</p>
+          <h1>视觉素材工作台</h1>
+        </div>
+        <span id="favoriteCount" class="count-badge">0</span>
+      </header>
+
+      <nav class="tab-list" aria-label="Side Panel views">
+        <button id="analysisTab" class="tab-button is-active" type="button" data-tab="analysis">当前分析</button>
+        <button id="libraryTab" class="tab-button" type="button" data-tab="library">素材库</button>
+        <button id="settingsTab" class="tab-button" type="button" data-tab="settings">设置</button>
+      </nav>
+
+      <section id="analysisView" class="tab-view">
+        <section id="emptyState" class="empty-state">
+          <h2>选择一张图片开始</h2>
+          <p>在网页图片上右键，选择“用 Aesthetic Lens 分析图片”。</p>
+        </section>
+
+        <section id="imagePanel" class="image-panel is-hidden">
+          <div class="preview-frame">
+            <img id="previewImage" alt="选中的网页图片预览">
+          </div>
+
+          <section class="info-section">
+            <h2>基础信息</h2>
+            <dl class="metadata-list">
+              <div>
+                <dt>图片尺寸</dt>
+                <dd id="imageSize">-</dd>
+              </div>
+              <div>
+                <dt>画幅比例</dt>
+                <dd id="aspectRatio">-</dd>
+              </div>
+              <div>
+                <dt>页面标题</dt>
+                <dd id="pageTitle">-</dd>
+              </div>
+              <div>
+                <dt>页面 URL</dt>
+                <dd><a id="pageUrl" href="#" target="_blank" rel="noreferrer">-</a></dd>
+              </div>
+              <div>
+                <dt>图片 URL</dt>
+                <dd><a id="imageUrl" href="#" target="_blank" rel="noreferrer">-</a></dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="info-section">
+            <div class="section-heading-row">
+              <h2>AI 分析</h2>
+              <button id="analyzeButton" class="secondary-button compact-button" type="button">开始分析</button>
+            </div>
+            <p id="analysisStatus" class="save-status" role="status"></p>
+            <div id="analysisResult" class="analysis-grid"></div>
+            <div class="action-row">
+              <button id="copyAnalysisJsonButton" class="secondary-button" type="button">复制完整 JSON</button>
+            </div>
+          </section>
+
+          <section class="info-section">
+            <label for="noteInput">用户笔记</label>
+            <textarea id="noteInput" rows="4" placeholder="记录构图、色彩、参考用途..."></textarea>
+            <button id="saveFavoriteButton" class="primary-button" type="button">收藏当前图片</button>
+            <p id="saveStatus" class="save-status" role="status"></p>
+          </section>
+        </section>
+      </section>
+
+      <section id="libraryView" class="tab-view is-hidden">
+        <section class="library-toolbar" aria-label="素材库筛选">
+          <label class="search-label" for="librarySearchInput">搜索素材</label>
+          <input id="librarySearchInput" class="search-input" type="search" placeholder="搜索标题、标签、笔记、Prompt...">
+          <div class="filter-row" role="group" aria-label="分析状态筛选">
+            <button class="filter-button is-active" type="button" data-filter="all">全部</button>
+            <button class="filter-button" type="button" data-filter="analyzed">已分析</button>
+            <button class="filter-button" type="button" data-filter="unanalyzed">未分析</button>
+          </div>
+        </section>
+
+        <section id="libraryEmptyState" class="empty-state compact">
+          <h2>素材库还是空的</h2>
+          <p>收藏图片后，它们会出现在这里。</p>
+        </section>
+
+        <section id="libraryContent" class="library-layout is-hidden">
+          <div id="favoriteList" class="favorite-grid" aria-label="已收藏素材"></div>
+          <p id="libraryNoResults" class="no-results is-hidden">没有匹配的素材。</p>
+
+          <aside id="favoriteDetail" class="favorite-detail is-hidden" aria-label="素材详情">
+            <p class="section-label">选中素材详情</p>
+            <div class="detail-preview-frame">
+              <img id="detailImage" alt="收藏素材预览">
+            </div>
+
+            <div class="detail-header">
+              <h2 id="detailTitle">-</h2>
+              <button id="deleteFavoriteButton" class="danger-button" type="button">删除</button>
+            </div>
+
+            <dl class="metadata-list compact-list">
+              <div>
+                <dt>画幅比例</dt>
+                <dd id="detailRatio">-</dd>
+              </div>
+              <div>
+                <dt>收藏时间</dt>
+                <dd id="detailTime">-</dd>
+              </div>
+              <div>
+                <dt>图片 URL</dt>
+                <dd><a id="detailImageUrl" href="#" target="_blank" rel="noreferrer">-</a></dd>
+              </div>
+              <div>
+                <dt>页面 URL</dt>
+                <dd><a id="detailPageUrl" href="#" target="_blank" rel="noreferrer">-</a></dd>
+              </div>
+            </dl>
+
+            <div id="detailTags" class="tag-row"></div>
+
+            <section class="prompt-block">
+              <h2>Prompt</h2>
+              <p id="detailPrompt">-</p>
+            </section>
+
+            <section class="prompt-block">
+              <h2>笔记</h2>
+              <p id="detailNote">-</p>
+            </section>
+
+            <div id="detailFullAnalysis"></div>
+
+            <div class="action-row">
+              <button id="copyPromptButton" class="secondary-button" type="button">复制 Prompt</button>
+              <button id="copyMarkdownButton" class="secondary-button" type="button">复制 Markdown</button>
+              <button id="copyDetailJsonButton" class="secondary-button" type="button">复制完整 JSON</button>
+            </div>
+            <p id="libraryStatus" class="save-status" role="status"></p>
+          </aside>
+        </section>
+      </section>
+
+      <section id="settingsView" class="tab-view is-hidden">
+        <section class="settings-panel">
+          <div class="settings-group">
+            <h2>分析模式</h2>
+            <div class="segmented-control" role="radiogroup" aria-label="分析模式">
+              <label>
+                <input id="mockModeInput" type="radio" name="analysisMode" value="mock">
+                <span>使用 Mock 分析</span>
+              </label>
+              <label>
+                <input id="realModeInput" type="radio" name="analysisMode" value="real">
+                <span>使用真实 AI 分析</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <label class="setting-field" for="providerSelect">
+              <span>Provider</span>
+              <select id="providerSelect">
+                <option value="openai">openai</option>
+                <option value="google">google</option>
+                <option value="custom">custom</option>
+              </select>
+            </label>
+
+            <label class="setting-field" for="modelInput">
+              <span>Model</span>
+              <input id="modelInput" type="text" placeholder="gpt-4.1">
+            </label>
+
+            <label class="setting-field" for="analysisLanguageSelect">
+              <span>分析语言</span>
+              <select id="analysisLanguageSelect">
+                <option value="zh-CN">zh-CN</option>
+                <option value="en-US">en-US</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <label class="setting-field" for="apiKeyInput">
+              <span>API Key</span>
+              <div class="secret-input-row">
+                <input id="apiKeyInput" type="password" autocomplete="off" placeholder="输入新的 API Key">
+                <button id="toggleApiKeyButton" class="icon-text-button" type="button">显示</button>
+              </div>
+            </label>
+            <p id="apiKeySavedText" class="setting-hint">未保存 API Key</p>
+            <p class="setting-hint">API Key 将保存在本机 Chrome 扩展本地存储中，不会主动上传到除所选 AI 服务以外的地方。</p>
+          </div>
+
+          <div class="settings-group compact-settings">
+            <label class="switch-row">
+              <input id="autoSaveAnalysisInput" type="checkbox">
+              <span>自动保存分析结果</span>
+            </label>
+            <label class="switch-row">
+              <input id="showDebugInfoInput" type="checkbox">
+              <span>显示调试信息</span>
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button id="saveSettingsButton" class="primary-button" type="button">保存配置</button>
+            <button id="clearApiKeyButton" class="secondary-button" type="button">清除 API Key</button>
+            <button id="testConnectionButton" class="secondary-button" type="button">测试连接</button>
+          </div>
+          <p id="settingsStatus" class="save-status" role="status"></p>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
