@@ -223,6 +223,34 @@
             <button id="testConnectionButton" class="secondary-button" type="button">测试连接</button>
           </div>
           <p id="settingsStatus" class="save-status" role="status"></p>
+
+          <section class="settings-group data-management-panel">
+            <div class="settings-group-heading">
+              <h2>数据管理</h2>
+              <span id="settingsLibraryCount" class="setting-count">当前素材数量：0</span>
+            </div>
+            <p class="setting-hint">完整备份用于迁移和恢复；创作 JSON 用于文生图、图生图和视频生成。</p>
+
+            <div class="settings-actions stacked-actions">
+              <button id="exportFullBackupButton" class="secondary-button" type="button">导出完整备份 JSON</button>
+              <button id="exportGenerationJsonButton" class="secondary-button" type="button">导出创作 JSON</button>
+              <button id="exportMarkdownButton" class="secondary-button" type="button">导出 Markdown</button>
+            </div>
+
+            <div class="import-mode-group" role="radiogroup" aria-label="导入方式">
+              <label class="switch-row">
+                <input id="mergeImportInput" type="radio" name="importMode" value="merge" checked>
+                <span>合并导入</span>
+              </label>
+              <label class="switch-row">
+                <input id="replaceImportInput" type="radio" name="importMode" value="replace">
+                <span>覆盖当前素材库</span>
+              </label>
+            </div>
+
+            <input id="libraryImportFileInput" class="is-hidden" type="file" accept="application/json,.json">
+            <button id="importBackupButton" class="primary-button" type="button">导入素材库备份</button>
+          </section>
         </section>
       </section>
     </main>

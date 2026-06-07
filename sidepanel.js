@@ -133,6 +133,14 @@ const elements = {
   saveSettingsButton: document.getElementById("saveSettingsButton"),
   clearApiKeyButton: document.getElementById("clearApiKeyButton"),
   testConnectionButton: document.getElementById("testConnectionButton"),
+  settingsLibraryCount: document.getElementById("settingsLibraryCount"),
+  exportFullBackupButton: document.getElementById("exportFullBackupButton"),
+  exportGenerationJsonButton: document.getElementById("exportGenerationJsonButton"),
+  exportMarkdownButton: document.getElementById("exportMarkdownButton"),
+  mergeImportInput: document.getElementById("mergeImportInput"),
+  replaceImportInput: document.getElementById("replaceImportInput"),
+  libraryImportFileInput: document.getElementById("libraryImportFileInput"),
+  importBackupButton: document.getElementById("importBackupButton"),
   settingsStatus: document.getElementById("settingsStatus")
 };
 
@@ -156,6 +164,11 @@ function init() {
   elements.saveSettingsButton.addEventListener("click", saveSettings);
   elements.clearApiKeyButton.addEventListener("click", clearApiKey);
   elements.testConnectionButton.addEventListener("click", testConnection);
+  elements.exportFullBackupButton.addEventListener("click", exportFullBackup);
+  elements.exportGenerationJsonButton.addEventListener("click", exportGenerationReadyLibrary);
+  elements.exportMarkdownButton.addEventListener("click", exportLibraryMarkdown);
+  elements.importBackupButton.addEventListener("click", () => elements.libraryImportFileInput.click());
+  elements.libraryImportFileInput.addEventListener("change", handleLibraryImportFile);
   elements.toggleApiKeyButton.addEventListener("click", toggleApiKeyVisibility);
   elements.providerSelect.addEventListener("change", handleProviderChange);
   chrome.storage.onChanged.addListener(handleStorageChange);
@@ -200,6 +213,7 @@ function renderSettings() {
   elements.autoSaveAnalysisInput.checked = state.settings.autoSaveAnalysis;
   elements.showDebugInfoInput.checked = state.settings.showDebugInfo;
   elements.apiKeySavedText.textContent = formatSavedApiKey(state.settings.apiKey);
+  updateSettingsLibraryCount();
 }
 
 function getSettingsFromForm() {
@@ -305,8 +319,7 @@ function loadActiveImage() {
 }
 
 async function loadFavorites() {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
-  state.favorites = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
+  state.favorites = await getLibrary();
   renderLibrary();
 }
 
@@ -322,6 +335,7 @@ function handleStorageChange(changes, areaName) {
   if (changes[STORAGE_KEYS.FAVORITES]) {
     state.favorites = normalizeFavorites(changes[STORAGE_KEYS.FAVORITES].newValue);
     renderLibrary();
+    updateSettingsLibraryCount();
   }
 
   if (changes[SETTINGS_STORAGE_KEY]) {
@@ -369,6 +383,12 @@ function updateEmptyStates(filteredLibrary = getVisibleFavorites()) {
   elements.libraryEmptyState.classList.toggle("is-hidden", hasFilteredLibrary);
   elements.libraryContent.classList.toggle("is-hidden", !hasFilteredLibrary);
   elements.favoriteDetail.classList.toggle("is-hidden", !hasFilteredLibrary || !getSelectedFavorite());
+}
+
+function updateSettingsLibraryCount() {
+  if (elements.settingsLibraryCount) {
+    elements.settingsLibraryCount.textContent = `当前素材数量：${state.favorites.length}`;
+  }
 }
 
 function cloneDeep(value) {
@@ -1206,13 +1226,10 @@ async function saveFavorite() {
   elements.saveStatus.textContent = "保存中...";
 
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
-    const favorites = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
+    const favorites = await getLibrary();
     const favorite = buildFavorite(state.activeImage, elements.noteInput.value, state.activeAnalysis);
 
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.FAVORITES]: [favorite, ...favorites]
-    });
+    await setLibrary([favorite, ...favorites]);
 
     state.selectedFavoriteId = favorite.id;
     switchTab("library");
@@ -1250,6 +1267,7 @@ function renderLibrary() {
   const visibleFavorites = getVisibleFavorites();
 
   elements.favoriteCount.textContent = String(state.favorites.length);
+  updateSettingsLibraryCount();
   updateEmptyStates(visibleFavorites);
   elements.libraryNoResults.classList.add("is-hidden");
   elements.favoriteList.replaceChildren(...visibleFavorites.map(createFavoriteCard));
@@ -1369,7 +1387,7 @@ async function deleteSelectedFavorite() {
   const nextFavorites = state.favorites.filter((favorite) => favorite.id !== selected.id);
   const visibleAfterDelete = nextFavorites.filter(matchesLibraryFilters);
   state.selectedFavoriteId = visibleAfterDelete[0] ? visibleAfterDelete[0].id : nextFavorites[0] ? nextFavorites[0].id : null;
-  await chrome.storage.local.set({ [STORAGE_KEYS.FAVORITES]: nextFavorites });
+  await setLibrary(nextFavorites);
   elements.libraryStatus.textContent = nextFavorites.length > 0 ? "已删除收藏。" : "";
 }
 
@@ -1474,6 +1492,269 @@ function buildFullJsonExport(item) {
   };
 }
 
+async function exportFullBackup() {
+  try {
+    const library = await getLibrary();
+    downloadJsonFile(`aesthetic-lens-full-backup-${getDateStamp()}.json`, {
+      app: "Aesthetic Lens",
+      type: "full_backup",
+      version: "1.0.0",
+      exportedAt: new Date().toISOString(),
+      library
+    });
+    elements.settingsStatus.textContent = "完整备份 JSON 已导出。";
+  } catch (error) {
+    elements.settingsStatus.textContent = "导出失败，请重试";
+  }
+}
+
+async function exportGenerationReadyLibrary() {
+  try {
+    const library = await getLibrary();
+    downloadJsonFile(`aesthetic-lens-generation-ready-${getDateStamp()}.json`, {
+      app: "Aesthetic Lens",
+      type: "generation_ready_library",
+      version: "1.0.0",
+      exportedAt: new Date().toISOString(),
+      items: library.map(buildFullJsonExport)
+    });
+    elements.settingsStatus.textContent = "创作 JSON 已导出。";
+  } catch (error) {
+    elements.settingsStatus.textContent = "导出失败，请重试";
+  }
+}
+
+async function exportLibraryMarkdown() {
+  try {
+    const library = await getLibrary();
+    const markdown = [
+      "# Aesthetic Lens 素材库",
+      "",
+      `导出时间：${new Date().toISOString()}`,
+      "",
+      ...library.map(buildLibraryMarkdownItem)
+    ].join("\n");
+    downloadTextFile(`aesthetic-lens-library-${getDateStamp()}.md`, markdown, "text/markdown;charset=utf-8");
+    elements.settingsStatus.textContent = "Markdown 已导出。";
+  } catch (error) {
+    elements.settingsStatus.textContent = "导出失败，请重试";
+  }
+}
+
+function buildLibraryMarkdownItem(item) {
+  const exportData = buildFullJsonExport(item);
+  const image = exportData.image_reference;
+  const visual = exportData.visual_analysis;
+  const cinematic = visual.cinematic_analysis || {};
+  const aesthetic = visual.aesthetic_value || {};
+  const title = image.source_page_title || "Untitled page";
+
+  return [
+    `# 视觉样本：${title}`,
+    "",
+    `![](${image.image_url})`,
+    "",
+    "## 来源",
+    `- 页面：${image.source_page_title || ""}`,
+    `- URL：${image.source_page_url || ""}`,
+    `- 收藏时间：${item.savedAt || ""}`,
+    "",
+    "## 核心价值",
+    aesthetic.core_value || "",
+    "",
+    "## 画面分析",
+    "",
+    "### 景别",
+    formatExportAnalysisValue(cinematic.shot_size),
+    "",
+    "### 视角",
+    formatExportAnalysisValue(cinematic.viewpoint),
+    "",
+    "### 构图",
+    formatExportAnalysisValue(cinematic.composition),
+    "",
+    "### 光影",
+    formatExportAnalysisValue(cinematic.lighting),
+    "",
+    "### 色彩系统",
+    formatExportAnalysisValue(cinematic.color_system),
+    "",
+    "### 影调",
+    formatExportAnalysisValue(cinematic.tone),
+    "",
+    "### 焦段感",
+    formatExportAnalysisValue(cinematic.focal_length_feeling),
+    "",
+    "### 景深",
+    formatExportAnalysisValue(cinematic.depth_of_field),
+    "",
+    "### 空间层次",
+    formatExportAnalysisValue(cinematic.spatial_layers),
+    "",
+    "### 材质响应",
+    formatExportAnalysisValue(cinematic.texture),
+    "",
+    "### 情绪功能",
+    formatExportAnalysisValue(cinematic.mood),
+    "",
+    "## 我的补充分析",
+    exportData.custom_dimensions.length > 0
+      ? exportData.custom_dimensions.map((dimension) => [
+        `### ${dimension.title}`,
+        `- 判断：${dimension.label}`,
+        `- 画面依据：${dimension.evidence}`,
+        `- 视觉作用：${dimension.function}`
+      ].join("\n")).join("\n\n")
+      : "",
+    "",
+    "## Prompt",
+    "",
+    "### 中文 Prompt",
+    exportData.generation_prompt.zh || "",
+    "",
+    "### English Prompt",
+    exportData.generation_prompt.en || "",
+    "",
+    "### Negative Prompt",
+    exportData.generation_prompt.negative_prompt || "",
+    "",
+    "## 标签",
+    exportData.tags.join("、"),
+    "",
+    "---",
+    ""
+  ].join("\n");
+}
+
+function formatExportAnalysisValue(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.join("、");
+  }
+
+  if (typeof value === "object") {
+    if ("label" in value || "evidence" in value || "function" in value) {
+      return [
+        value.label ? `判断：${formatExportAnalysisValue(value.label)}` : "",
+        value.evidence ? `画面依据：${formatExportAnalysisValue(value.evidence)}` : "",
+        value.function ? `视觉作用：${formatExportAnalysisValue(value.function)}` : ""
+      ].filter(Boolean).join("\n");
+    }
+
+    return Object.entries(value)
+      .map(([key, item]) => `- ${key}：${formatExportAnalysisValue(item)}`)
+      .join("\n");
+  }
+
+  return String(value);
+}
+
+function downloadJsonFile(filename, data) {
+  downloadTextFile(filename, JSON.stringify(data, null, 2), "application/json;charset=utf-8");
+}
+
+function downloadTextFile(filename, text, mimeType) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getDateStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function handleLibraryImportFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+
+  if (!file) {
+    return;
+  }
+
+  const mode = elements.replaceImportInput.checked ? "replace" : "merge";
+  await importFullBackup(file, mode);
+}
+
+async function importFullBackup(file, mode) {
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+
+    if (!isValidFullBackup(payload)) {
+      elements.settingsStatus.textContent = "导入失败：文件格式不正确";
+      return;
+    }
+
+    const importedLibrary = normalizeFavorites(payload.library);
+
+    if (mode === "replace") {
+      if (!confirm("这会清空当前素材库并使用导入文件替换，是否继续？")) {
+        elements.settingsStatus.textContent = "已取消导入。";
+        return;
+      }
+
+      await setLibrary(importedLibrary);
+      renderLibrary();
+      elements.settingsStatus.textContent = `导入完成，已替换为 ${importedLibrary.length} 条素材`;
+      return;
+    }
+
+    const currentLibrary = await getLibrary();
+    const mergedLibrary = mergeLibrary(currentLibrary, importedLibrary);
+    const addedCount = Math.max(0, mergedLibrary.length - currentLibrary.length);
+    await setLibrary(mergedLibrary);
+    renderLibrary();
+    elements.settingsStatus.textContent = `导入完成，新增 ${addedCount} 条素材`;
+  } catch (error) {
+    elements.settingsStatus.textContent = "导入失败：文件格式不正确";
+  }
+}
+
+function isValidFullBackup(payload) {
+  return Boolean(
+    payload
+    && payload.app === "Aesthetic Lens"
+    && payload.type === "full_backup"
+    && Array.isArray(payload.library)
+  );
+}
+
+function mergeLibrary(currentLibrary, importedLibrary) {
+  return dedupeLibrary([...normalizeFavorites(currentLibrary), ...normalizeFavorites(importedLibrary)]);
+}
+
+function dedupeLibrary(library) {
+  const seen = new Set();
+  const deduped = [];
+
+  normalizeFavorites(library).forEach((item) => {
+    const image = getFavoriteImage(item);
+    const key = item.id
+      ? `id:${item.id}`
+      : `image:${image.src || ""}|${image.pageUrl || ""}`;
+    const fallbackKey = `image:${image.src || ""}|${image.pageUrl || ""}`;
+
+    if (seen.has(key) || seen.has(fallbackKey)) {
+      return;
+    }
+
+    seen.add(key);
+    seen.add(fallbackKey);
+    deduped.push(item);
+  });
+
+  return deduped;
+}
+
 function showCopyStatus(source, message) {
   if (source === "analysis") {
     elements.analysisStatus.textContent = message;
@@ -1483,13 +1764,27 @@ function showCopyStatus(source, message) {
   elements.libraryStatus.textContent = message;
 }
 
+async function getLibrary() {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
+  const library = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
+  state.favorites = library;
+  updateSettingsLibraryCount();
+  return library;
+}
+
+async function setLibrary(library) {
+  const normalizedLibrary = normalizeFavorites(library);
+  state.favorites = normalizedLibrary;
+  await chrome.storage.local.set({ [STORAGE_KEYS.FAVORITES]: normalizedLibrary });
+  updateSettingsLibraryCount();
+}
+
 async function updateLibraryItem(itemId, updater) {
   if (!itemId) {
     throw new Error("Missing library item id.");
   }
 
-  const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
-  const latestFavorites = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
+  const latestFavorites = await getLibrary();
   const nextFavorites = latestFavorites.map((favorite) => {
     if (favorite.id !== itemId) {
       return favorite;
@@ -1503,15 +1798,12 @@ async function updateLibraryItem(itemId, updater) {
     throw new Error("Library item not found.");
   }
 
-  state.favorites = nextFavorites;
-  await chrome.storage.local.set({ [STORAGE_KEYS.FAVORITES]: nextFavorites });
+  await setLibrary(nextFavorites);
   return updatedItem;
 }
 
 async function getLatestLibraryItemById(itemId) {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.FAVORITES);
-  const latestFavorites = normalizeFavorites(result[STORAGE_KEYS.FAVORITES]);
-  state.favorites = latestFavorites;
+  const latestFavorites = await getLibrary();
   return latestFavorites.find((favorite) => favorite.id === itemId) || null;
 }
 
@@ -1561,21 +1853,29 @@ function normalizeFavorites(value) {
     return [];
   }
 
-  return value.map((favorite, index) => {
-    const imageData = getFavoriteImage(favorite);
-    return {
-      ...favorite,
-      id: favorite.id || `${imageData.src || "favorite"}-${favorite.savedAt || favorite.favoritedAt || index}`,
-      image: favorite.image || imageData,
-      tags: Array.isArray(favorite.tags) && favorite.tags.length > 0
-        ? localizeTags(favorite.tags)
+  return value.map(normalizeLibraryItem);
+}
+
+function normalizeLibraryItem(favorite, index = 0) {
+  const imageData = getFavoriteImage(favorite);
+  const savedAt = favorite && (favorite.savedAt || favorite.favoritedAt) || new Date().toISOString();
+
+  return {
+    ...(favorite || {}),
+    id: favorite && favorite.id || `${imageData.src || "favorite"}-${savedAt || index}`,
+    image: favorite && favorite.image || imageData,
+    analysis: favorite && favorite.analysis || null,
+    user_edits: favorite && favorite.user_edits && typeof favorite.user_edits === "object" ? favorite.user_edits : {},
+    custom_dimensions: favorite && Array.isArray(favorite.custom_dimensions) ? favorite.custom_dimensions : [],
+    note: favorite && favorite.note || "",
+    tags: favorite && Array.isArray(favorite.tags) && favorite.tags.length > 0
+      ? localizeTags(favorite.tags)
+      : favorite && favorite.analysis && Array.isArray(favorite.analysis.tags)
+        ? localizeTags(favorite.analysis.tags)
         : buildTags(imageData),
-      user_edits: favorite.user_edits && typeof favorite.user_edits === "object" ? favorite.user_edits : {},
-      custom_dimensions: Array.isArray(favorite.custom_dimensions) ? favorite.custom_dimensions : [],
-      savedAt: favorite.savedAt || favorite.favoritedAt || new Date().toISOString(),
-      updatedAt: favorite.updatedAt || favorite.savedAt || favorite.favoritedAt || new Date().toISOString()
-    };
-  });
+    savedAt,
+    updatedAt: favorite && favorite.updatedAt || savedAt
+  };
 }
 
 function getFavoriteImage(favorite) {
