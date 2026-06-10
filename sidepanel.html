@@ -60,6 +60,10 @@
           </section>
 
           <section class="info-section">
+            <label class="setting-field compact-setting-field" for="analysisTemplateSelect">
+              <span>分析模板</span>
+              <select id="analysisTemplateSelect"></select>
+            </label>
             <div class="section-heading-row">
               <h2>AI 分析</h2>
               <button id="analyzeButton" class="secondary-button compact-button" type="button">开始分析</button>
@@ -82,6 +86,13 @@
 
       <section id="libraryView" class="tab-view is-hidden">
         <section class="library-toolbar" aria-label="素材库筛选">
+          <label class="search-label" for="collectionFilterSelect">Collection</label>
+          <div class="collection-toolbar-row">
+            <select id="collectionFilterSelect" class="search-input"></select>
+            <button id="createCollectionButton" class="secondary-button compact-button" type="button">新建</button>
+            <button id="renameCollectionButton" class="secondary-button compact-button" type="button">重命名</button>
+            <button id="deleteCollectionButton" class="secondary-button compact-button" type="button">删除</button>
+          </div>
           <label class="search-label" for="librarySearchInput">搜索素材</label>
           <input id="librarySearchInput" class="search-input" type="search" placeholder="搜索标题、标签、笔记、Prompt...">
           <div class="filter-row" role="group" aria-label="分析状态筛选">
@@ -89,6 +100,7 @@
             <button class="filter-button" type="button" data-filter="analyzed">已分析</button>
             <button class="filter-button" type="button" data-filter="unanalyzed">未分析</button>
           </div>
+          <button id="toggleOrganizeModeButton" class="secondary-button" type="button">进入整理模式</button>
         </section>
 
         <section id="libraryEmptyState" class="empty-state compact">
@@ -99,6 +111,14 @@
         <section id="libraryContent" class="library-layout is-hidden">
           <div id="favoriteList" class="favorite-grid" aria-label="已收藏素材"></div>
           <p id="libraryNoResults" class="no-results is-hidden">没有匹配的素材。</p>
+          <div id="batchActionBar" class="batch-action-bar is-hidden">
+            <span id="batchSelectedCount">已选择 0 项</span>
+            <select id="batchCollectionSelect"></select>
+            <button id="batchMoveButton" class="secondary-button compact-button" type="button">移动到 Collection</button>
+            <button id="batchTagButton" class="secondary-button compact-button" type="button">添加标签</button>
+            <button id="batchDeleteButton" class="danger-button compact-button" type="button">批量删除</button>
+            <button id="batchCancelButton" class="secondary-button compact-button" type="button">取消</button>
+          </div>
 
           <aside id="favoriteDetail" class="favorite-detail is-hidden" aria-label="素材详情">
             <p class="section-label">选中素材详情</p>
@@ -131,6 +151,12 @@
             </dl>
 
             <div id="detailTags" class="tag-row"></div>
+
+            <section class="prompt-block">
+              <h2>所属 Collection</h2>
+              <div id="detailCollections" class="collection-checkbox-list"></div>
+              <button id="saveItemCollectionsButton" class="secondary-button" type="button">保存 Collection</button>
+            </section>
 
             <section class="prompt-block">
               <h2>Prompt</h2>
@@ -223,6 +249,71 @@
             <button id="testConnectionButton" class="secondary-button" type="button">测试连接</button>
           </div>
           <p id="settingsStatus" class="save-status" role="status"></p>
+
+          <section class="settings-group data-management-panel">
+            <div class="settings-group-heading">
+              <h2>数据管理</h2>
+              <span id="settingsLibraryCount" class="setting-count">当前素材数量：0</span>
+            </div>
+            <p class="setting-hint">完整备份用于迁移和恢复；创作 JSON 用于文生图、图生图和视频生成。</p>
+
+            <label class="setting-field compact-setting-field" for="exportScopeSelect">
+              <span>导出范围</span>
+              <select id="exportScopeSelect">
+                <option value="all">全部素材</option>
+                <option value="current">当前 Collection</option>
+                <option value="specified">指定 Collection</option>
+              </select>
+            </label>
+            <label class="setting-field compact-setting-field" for="exportCollectionSelect">
+              <span>指定 Collection</span>
+              <select id="exportCollectionSelect"></select>
+            </label>
+
+            <div class="settings-actions stacked-actions">
+              <button id="exportFullBackupButton" class="secondary-button" type="button">导出完整备份 JSON</button>
+              <button id="exportGenerationJsonButton" class="secondary-button" type="button">导出创作 JSON</button>
+              <button id="exportMarkdownButton" class="secondary-button" type="button">导出 Markdown</button>
+            </div>
+
+            <div class="import-mode-group" role="radiogroup" aria-label="导入方式">
+              <label class="switch-row">
+                <input id="mergeImportInput" type="radio" name="importMode" value="merge" checked>
+                <span>合并导入</span>
+              </label>
+              <label class="switch-row">
+                <input id="replaceImportInput" type="radio" name="importMode" value="replace">
+                <span>覆盖当前素材库</span>
+              </label>
+            </div>
+
+            <label class="setting-field compact-setting-field" for="importCollectionStrategySelect">
+              <span>导入位置</span>
+              <select id="importCollectionStrategySelect">
+                <option value="keep">保持原 Collection</option>
+                <option value="quick_saves">导入到 Quick Saves</option>
+                <option value="uncategorized">导入到未分类</option>
+                <option value="current">导入到当前 Collection</option>
+              </select>
+            </label>
+
+            <input id="libraryImportFileInput" class="is-hidden" type="file" accept="application/json,.json">
+            <button id="importBackupButton" class="primary-button" type="button">导入素材库备份</button>
+          </section>
+
+          <section class="settings-group template-management-panel">
+            <div class="settings-group-heading">
+              <h2>分析模板</h2>
+              <button id="createTemplateButton" class="secondary-button compact-button" type="button">新建我的模板</button>
+            </div>
+            <p class="setting-hint">预设模板不可直接修改，可复制为“我的模板”后编辑；分析前可在当前分析页选择模板。</p>
+            <div id="templateManager" class="template-manager"></div>
+            <div class="settings-actions stacked-actions">
+              <button id="exportTemplatesButton" class="secondary-button" type="button">导出我的模板</button>
+              <button id="importTemplatesButton" class="secondary-button" type="button">导入模板</button>
+            </div>
+            <input id="templateImportFileInput" class="is-hidden" type="file" accept="application/json,.json">
+          </section>
         </section>
       </section>
     </main>
